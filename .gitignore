@@ -1,0 +1,17 @@
+# - Python _
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+
+# virtual envs
+venv*/
+env*/
+.venv*/
+
+# Hugging Face cache
+model_cache/
+
+# Env and secrets
+.env
+.env.*
