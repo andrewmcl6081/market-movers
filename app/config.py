@@ -1,9 +1,9 @@
 from typing import List, Optional
 from functools import lru_cache
-from pydantic_settings import BaseSettings
-from pydantic import validator
+from pydantic import Field, field_validator, model_validator, ValidationInfo
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-class Settings(BaseSettings):
+class Config(BaseSettings):
   # General
   API_V1_STR: str = "/api/v1"
   PROJECT_NAME: str = "Market Movers Daily"
@@ -19,10 +19,11 @@ class Settings(BaseSettings):
   # Constructed DATABASE_URL
   DATABASE_URL: Optional[str] = None
   
-  @validator("DATABASE_URL", pre=True)
-  def assemble_db_connections(cls, v, values):
-    if isinstance(v, str):
-      return v
+  @model_validator(mode="before")
+  @classmethod
+  def assemble_db_connections(cls, values):
+    if values.get("DATABASE_URL"):
+      return values
     
     return f"postgresql://{values.get('POSTGRES_USER')}:{values.get('POSTGRES_PASSWORD')}@{values.get('POSTGRES_HOST')}:{values.get('POSTGRES_PORT')}/{values.get('POSTGRES_DB')}"
   
@@ -55,27 +56,30 @@ class Settings(BaseSettings):
   # Security
   SECRET_KEY: str
   
-  @validator("FINNHUB_API_KEY", "NEWSAPI_KEY")
-  def validate_api_keys(cls, v, field):
+  @field_validator("FINNHUB_API_KEY", "NEWS_API_KEY")
+  @classmethod
+  def validate_api_keys(cls, v: str, info: ValidationInfo) -> str:
     if v and v.startswith("your_"):
-      raise ValueError(f"{field.name} contains placeholder value. Please set a real API key.")
+      raise ValueError(f"{info.field_name} contains placeholder value. Please set a real API key.")
     return v
   
-  @validator("EMAIL_RECIPIENTS", pre=True)
-  def parse_email_recipients(cls, v):
+  @field_validator("EMAIL_RECIPIENTS", mode="before")
+  @classmethod
+  def parse_email_recipients(cls, v, info: ValidationInfo):
     if isinstance(v, str):
       return [email.strip() for email in v.split(",")]
     return v
   
-  class Config:
-    env_file = ".env"
-    env_file_encoding = "utf-8"
-    case_sensitive = True
+  model_config = SettingsConfigDict(
+    env_file=".env",
+    env_file_encoding="utf-8",
+    case_sensitive=True
+  )
 
 @lru_cache()
-def get_settings() -> Settings:
+def get_config() -> Config:
   try:
-    return Settings()
+    return Config()
   except Exception as e:
     print(f"Error loading settings: {e}")
     print("Make sure all required environment variables are set in .env file")
