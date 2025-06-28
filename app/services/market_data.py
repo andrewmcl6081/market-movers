@@ -10,11 +10,11 @@ from db.models import IndexConstituent, DailyPrice, MarketMover
 from config import get_config
 
 logger = logging.getLogger(__name__)
-config = get_config()
 
 class MarketDataService:
   def __init__(self):
-    self.client = finnhub.Client(api_key=config.FINNHUB_API_KEY)
+    self.config = get_config()
+    self.client = finnhub.Client(api_key=self.config.FINNHUB_API_KEY)
     self.sp500_top_constituents = self._load_top_constituents()
   
   def _load_top_constituents(self) -> List[Dict]:

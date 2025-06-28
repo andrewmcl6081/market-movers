@@ -1,3 +1,4 @@
+import os
 from typing import List, Optional
 from functools import lru_cache
 from pydantic import Field, field_validator, model_validator, ValidationInfo
@@ -25,7 +26,13 @@ class Config(BaseSettings):
     if values.get("DATABASE_URL"):
       return values
     
-    return f"postgresql://{values.get('POSTGRES_USER')}:{values.get('POSTGRES_PASSWORD')}@{values.get('POSTGRES_HOST')}:{values.get('POSTGRES_PORT')}/{values.get('POSTGRES_DB')}"
+    required = ("POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DB", "POSTGRES_HOST", "POSTGRES_PORT")
+    if all(values.get(k) for k in required):
+      values["DATABASE_URL"] = (
+        f"postgresql://{values['POSTGRES_USER']}:{values['POSTGRES_PASSWORD']}@"
+        f"{values['POSTGRES_HOST']}:{values['POSTGRES_PORT']}/{values['POSTGRES_DB']}"
+      )
+    return values
   
   # Models
   HF_TOKEN: Optional[str] = None
@@ -78,7 +85,11 @@ class Config(BaseSettings):
 
 @lru_cache()
 def get_config() -> Config:
+  env = os.getenv("ENVIRONMENT", "development")
+  
   try:
+    if env == "test":
+      return Config(_env_file=".env.test")
     return Config()
   except Exception as e:
     print(f"Error loading settings: {e}")
