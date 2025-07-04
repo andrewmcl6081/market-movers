@@ -112,3 +112,62 @@ def test_get_index_summary_and_index_level(sqlite_session, monkeypatch):
   # Run get_index_level and confirm it reads from DB
   index_level = service.get_index_level(sqlite_session, target_date)
   assert index_level == 500.0
+  
+def test_identify_top_movers(sqlite_session):
+  service = MarketDataService()
+  target_date = date.today()
+  
+  index_summary = IndexSummary(
+    date=target_date,
+    current_price=5000.0,
+    change=50.0,
+    percent_change=1.0,
+    high=5050.0,
+    low=4950.0,
+    open=4980.0,
+    previous_close=4950.0
+  )
+  sqlite_session.add(index_summary)
+  
+  constituents = [
+    IndexConstituent(symbol="AAPL", company_name="Apple", weight=6.5, is_active=True),
+    IndexConstituent(symbol="MSFT", company_name="Microsoft", weight=6.0, is_active=True),
+    IndexConstituent(symbol="TSLA", company_name="Tesla", weight=4.0, is_active=True)
+  ]
+  sqlite_session.add_all(constituents)
+  sqlite_session.commit()
+  
+  daily_prices = [
+    DailyPrice(symbol="AAPL", constituent_id=constituents[0].id, date=target_date, current_price=200.0, percent_change=2.0),
+    DailyPrice(symbol="MSFT", constituent_id=constituents[1].id, date=target_date, current_price=300.0, percent_change=-1.5),
+    DailyPrice(symbol="TSLA", constituent_id=constituents[2].id, date=target_date, current_price=180.0, percent_change=0.5),
+  ]
+  sqlite_session.add_all(daily_prices)
+  sqlite_session.commit()
+  
+  gainers, losers = service.identify_top_movers(sqlite_session, target_date)
+  
+  print("\nGainers:")
+  for g in gainers:
+    print(g)
+  
+  print("\nLosers:")
+  for l in losers:
+    print(l)
+  
+  assert len(gainers) == 2
+  assert len(losers) == 1
+  
+  assert gainers[0]["symbol"] == "AAPL"
+  assert losers[0]["symbol"] == "MSFT"
+
+def test_get_market_status_real():
+  service = MarketDataService()
+  status = service.get_market_status()
+  
+  print("\nMarket Status:", status)
+  
+  assert isinstance(status, dict)
+  assert "is_open" in status
+  assert "session" in status
+  assert "timezone" in status
