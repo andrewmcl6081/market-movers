@@ -13,7 +13,7 @@ apscheduler==3.10.4
 pytz==2023.3
 
 # Market data & News
-finnhub-python==2.4.18
+finnhub-python==2.4.24
 newsapi-python==0.2.7
 requests==2.31.0
 yfinance==0.2.32
