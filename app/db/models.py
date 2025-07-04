@@ -12,8 +12,6 @@ class IndexConstituent(Base):
   company_name = Column(String(255))
   sector = Column(String(100))
   weight = Column(Float)
-  shares_outstanding = Column(Float)
-  market_cap = Column(Float)
   
   # When this constituent was added/updated
   added_date = Column(Date)
@@ -36,16 +34,13 @@ class DailyPrice(Base):
   date = Column(Date, nullable=False, index=True)
   
   # Price data
-  open = Column(Float)
+  current_price = Column(Float)
+  change = Column(Float)
+  percent_change = Column(Float)
   high = Column(Float)
   low = Column(Float)
-  close = Column(Float, nullable=False)
-  prev_close = Column(Float)
-  volume = Column(Integer)
-  
-  # Calculated fields
-  change_pct = Column(Float)
-  change_dollar = Column(Float)
+  open = Column(Float)
+  previous_close = Column(Float)
   
   created_at = Column(DateTime, default=datetime.utcnow)
   
@@ -56,6 +51,20 @@ class DailyPrice(Base):
   __table_args__ = (
     UniqueConstraint('symbol', 'date', name='_symbol_date_uc'),
   )
+
+class IndexSummary(Base):
+  __tablename__ = "index_summaries"
+  
+  id = Column(Integer, primary_key=True)
+  date = Column(Date, unique=True, nullable=False)
+  
+  current_price = Column(Float)
+  change = Column(Float)
+  percent_change = Column(Float)
+  high = Column(Float)
+  low = Column(Float)
+  open = Column(Float)
+  previous_close = Column(Float)
 
 class MarketMover(Base):
   """Top movers for each day"""
