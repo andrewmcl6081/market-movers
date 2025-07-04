@@ -3,7 +3,7 @@ import json
 import logging
 import finnhub
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta, date
+from datetime import datetime, date
 from typing import List, Dict, Optional, Tuple
 
 from db.models import IndexConstituent, DailyPrice, IndexSummary, MarketMover
