@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, date
 from typing import List, Dict, Optional, Tuple
 
-from db.models import IndexConstituent, DailyPrice, IndexSummary
+from db.models import IndexConstituent, DailyPrice, IndexSummary, MarketMover
 from config import get_config
 
 logger = logging.getLogger(__name__)
@@ -121,9 +121,9 @@ class MarketDataService:
     
     return prices
 
-  def calculate_index_impact(self, percent_changet: float, weight: float, index_level: float) -> float:
+  def calculate_index_impact(self, percent_change: float, weight: float, index_level: float) -> float:
     """Calculate how many index points a stock's move contributed"""
-    index_contribution_pct = (weight * percent_changet) / 100
+    index_contribution_pct = (weight * percent_change) / 100
     index_points = (index_contribution_pct * index_level) / 100
     return round(index_points, 2)
   
@@ -173,8 +173,9 @@ class MarketDataService:
       # Get all active constituents
       constituents = db.query(IndexConstituent).filter_by(is_active=True).all()
       if not constituents:
-        logger.warning("No active constituents found")
-        return [], []
+        logger.warning("No active constituents found. Attempting to update")
+        self.update_sp500_constituents(db)
+        constituents = db.query(IndexConstituent).filter_by(is_active=True).all()
       
       prices = {
         p.symbol: p
@@ -184,18 +185,25 @@ class MarketDataService:
       
       movers = []
       for c in constituents:
-        p = prices.get(c.symbol)
-        if not p or not p.percent_change:
+        price = prices.get(c.symbol)
+        if not price or price.percent_change is None:
           continue
         
-        impact = self.calculate_index_impact(p.percent_change, c.weight, index_level)
-        movers.append({
-          "symbol": c.symbol,
-          "company_name": c.company_name,
-          "percent_change": p.percent_change,
-          "close_price": p.current_price,
-          "index_points_contribution": impact
-        })
+        if abs(price.percent_change) > 0.5:
+          impact = self.calculate_index_impact(
+            percent_change=price.percent_change,
+            weight=c.weight,
+            index_level=index_level
+          )
+        
+          movers.append({
+            "symbol": c.symbol,
+            "company_name": c.company_name,
+            "percent_change": price.percent_change,
+            "close_price": price.current_price,
+            "index_points_contribution": impact,
+            "constituent_id": c.id
+          })
       
       # Sort by absolute index impact
       movers.sort(key=lambda m: abs(m["index_points_contribution"]), reverse=True)
@@ -203,7 +211,67 @@ class MarketDataService:
       gainers = [m for m in movers if m["percent_change"] > 0][:5]
       losers = [m for m in movers if m["percent_change"] < 0][:5]
       
+      for rank, gainer in enumerate(gainers, 1):
+        db.add(MarketMover(
+          date=target_date,
+          constituent_id=gainer["constituent_id"],
+          symbol=gainer["symbol"],
+          company_name=gainer["company_name"],
+          percent_change=gainer["percent_change"],
+          index_points_contribution=gainer["index_points_contribution"],
+          close_price=gainer["close_price"],
+          rank=rank,
+          mover_type="gainer"
+        ))
+      
+      for rank, loser in enumerate(losers, 1):
+        db.add(MarketMover(
+          date=target_date,
+          constituent_id=loser["constituent_id"],
+          symbol=loser["symbol"],
+          company_name=loser["company_name"],
+          percent_change=loser["percent_change"],
+          index_points_contribution=loser["index_points_contribution"],
+          close_price=loser["close_price"],
+          rank=-rank,
+          mover_type="loser"
+        ))
+      
+      db.commit()
+      logger.info(f"Identified {len(gainers)} gainers and {len(losers)} losers")
       return gainers, losers
     except Exception as e:
       logger.error(f"Error identifying top movers: {e}")
       return [], []
+  
+  def get_stock_fundamentals(self, symbol: str) -> Dict:
+    try:
+      profile = self.client.company_profile2(symbol=symbol)
+      if profile:
+        return {
+          "market_cap": profile.get("marketCapitalization", 0) * 1_000_000,
+          "name": profile.get("name"),
+          "industry": profile.get("finnhubIndustry"),
+          "logo": profile.get("logo"),
+          "weburl": profile.get("weburl")
+        }
+    except Exception as e:
+      logger.error(f"Error fetching fundamentals for {symbol}: {e}")
+    
+    return {}
+  
+  def get_market_status(self) -> Dict:
+    try:
+      status = self.client.market_status(exchange="US")
+      return {
+        "is_open": status.get("isOpen", False),
+        "session": status.get("session", "closed"),
+        "timezone": status.get("timezone", "America/New_York")
+      }
+    except Exception as e:
+      logger.error(f"Error checking market status: {e}")
+      return {
+        "is_open": False,
+        "session": "unknown",
+        "error": str(e)
+      }
