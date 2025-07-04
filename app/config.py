@@ -40,7 +40,8 @@ class Config(BaseSettings):
   
   # API KEYS
   FINNHUB_API_KEY: str
-  NEWS_API_KEY: Optional[str] = None
+  NEWS_API_KEY: str
+  MK_API_KEY: str
   
   # Email configuration
   SENDGRID_API_KEY: Optional[str] = None
