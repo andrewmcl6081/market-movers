@@ -77,10 +77,9 @@ class MarketMover(Base):
   company_name = Column(String(255))
   
   # Movement data
-  change_pct = Column(Float, nullable=False)
+  percent_change = Column(Float, nullable=False)
   index_points_contribution = Column(Float)
   close_price = Column(Float)
-  volume = Column(Integer)
   
   # Ranking
   rank = Column(Integer)
