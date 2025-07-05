@@ -4,7 +4,7 @@ from datetime import date
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from db.models import Base, IndexConstituent, DailyPrice, IndexSummary
-from services.market_data import MarketDataService
+from app.services.market_data_service import MarketDataService
 
 @pytest.fixture
 def sqlite_session():
