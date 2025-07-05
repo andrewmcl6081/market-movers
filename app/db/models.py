@@ -158,7 +158,7 @@ class NewsArticle(Base):
   
   # Article data
   headline = Column(Text, nullable=False)
-  description = Column(Text)
+  summary = Column(Text)
   url = Column(Text)
   source = Column(String(100))
   published_at = Column(DateTime)
@@ -166,11 +166,17 @@ class NewsArticle(Base):
   # Sentiment analysis
   sentiment_label = Column(String(20))
   sentiment_score = Column(Float)
+  is_top_headline = Column(Boolean, default=False)
   
   created_at = Column(DateTime, default=datetime.utcnow)
   
   # Relationships
   market_mover = relationship("MarketMover", back_populates="news_articles")
+  
+  def __repr__(self):
+    return (f"<NewsArticle(id={self.id}, symbol={self.symbol}, "
+            f"headline={self.headline[:30]!r}, score={self.sentiment_score}, "
+            f"label={self.sentiment_label}, is_top={self.is_top_headline})>")
 
 class SystemLog(Base):
   """System logs for monitoring"""
