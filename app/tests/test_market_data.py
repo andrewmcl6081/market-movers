@@ -1,22 +1,7 @@
 import pytest
-import finnhub
 from datetime import date
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from db.models import Base, IndexConstituent, DailyPrice, IndexSummary
+from app.db.models import IndexConstituent, DailyPrice, IndexSummary
 from app.services.market_data_service import MarketDataService
-
-@pytest.fixture
-def sqlite_session():
-  engine = create_engine("sqlite:///:memory:")
-  Session = sessionmaker(bind=engine)
-  Base.metadata.create_all(engine)
-  session = Session()
-  try:
-    yield session
-  finally:
-    session.close()
-    engine.dispose()
 
 @pytest.fixture
 def sample_constituent(sqlite_session):
