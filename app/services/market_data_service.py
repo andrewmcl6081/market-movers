@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, date
 from typing import List, Dict, Optional, Tuple
 
-from db.models import IndexConstituent, DailyPrice, IndexSummary, MarketMover
+from app.db.models import IndexConstituent, DailyPrice, IndexSummary, MarketMover
 from config import get_config
 
 logger = logging.getLogger(__name__)

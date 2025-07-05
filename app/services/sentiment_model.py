@@ -1,6 +1,6 @@
 import torch
 import logging
-from config import get_config
+from app.config import get_config
 from functools import lru_cache
 from transformers import pipeline
 
