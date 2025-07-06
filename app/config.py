@@ -44,9 +44,9 @@ class Config(BaseSettings):
   MK_API_KEY: str
   
   # Email configuration
-  SENDGRID_API_KEY: Optional[str] = None
-  EMAIL_FROM: str = "marketmovers@yourdomain.com"
-  EMAIL_RECIPIENTS: List[str] = []
+  SENDGRID_API_KEY: str
+  EMAIL_FROM: str
+  EMAIL_RECIPIENTS: str
   
   # Report Settings
   REPORT_TIME: str = "16:05"
