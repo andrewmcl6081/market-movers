@@ -178,6 +178,24 @@ class NewsArticle(Base):
             f"headline={self.headline[:30]!r}, score={self.sentiment_score}, "
             f"label={self.sentiment_label}, is_top={self.is_top_headline})>")
 
+class UserSubscription(Base):
+  """User email subscriptions for daily reports"""
+  __tablename__ = "user_subscriptions"
+  
+  id = Column(Integer, primary_key=True, index=True)
+  email = Column(String(255), unique=True, nullable=False, index=True)
+  send_daily_report = Column(Boolean, default=True)
+  
+  subscribed_at = Column(DateTime, default=datetime.utcnow)
+  unsubscribed_at = Column(DateTime)
+  
+  last_email_sent = Column(DateTime)
+  total_emails_sent = Column(Integer, default=0)
+  
+  timezone = Column(String(50), default="America/New_York")
+  
+  updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 class SystemLog(Base):
   """System logs for monitoring"""
   __tablename__ = "system_logs"
