@@ -53,6 +53,16 @@ class NewsService:
       logger.error(f"Error fetching news for {symbol} via Finnhub: {e}")
       return []
   
+  def fetch_bulk_news_for_movers(self, db: Session, report_date: date, movers: List[Dict]) -> int:
+    """Fetch news for all market movers"""
+    
+    total_articles = 0
+    for mover in movers:
+      articles = self.fetch_stock_news(db, mover["symbol"], report_date)
+      total_articles += len(articles)
+    
+    return total_articles
+  
   def analyze_sentiment_for_date(self, db: Session, target_date: date):
     try:
       # Fetch all news articles for that date
