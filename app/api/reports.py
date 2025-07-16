@@ -5,10 +5,39 @@ from datetime import date
 from typing import List, Optional
 
 from app.db.connection import get_db
-from app.db.models import DailyReport, MarketMover, IndexSummary
+from app.db.models import DailyReport, MarketMover
 from app.schemas.report import ReportSummaryResponse, MoverResponse
 
 router = APIRouter()
+
+@router.get("/", response_model=List[ReportSummaryResponse])
+async def list_reports(start_date: Optional[date] = None, end_date: Optional[date] = None, limit: int = 30, db: Session = Depends(get_db)):
+  """List available reports"""
+  
+  query = db.query(DailyReport)
+  
+  if start_date:
+    query = query.filter(DailyReport.report_date >= start_date)
+  if end_date:
+    query = query.filter(DailyReport.report_date <= end_date)
+  
+  reports = query.order_by(DailyReport.report_date.desc()).limit(limit).all()
+  
+  if not reports:
+    raise HTTPException(status_code=404, detail="No reports available for the given date range")
+  
+  return [
+    ReportSummaryResponse(
+      report_date=r.report_date,
+      generated_at=r.generated_at,
+      index_close=r.index_close,
+      index_change_pct=r.index_change_pct,
+      index_change_points=r.index_change_points,
+      email_sent=r.email_sent,
+      constituents_processed=r.constituents_processed,
+      news_articles_analyzed=r.news_articles_analyzed
+    ) for r in reports
+  ]
 
 @router.get("/latest", response_model=ReportSummaryResponse)
 async def get_latest_report(db: Session = Depends(get_db)):
@@ -90,33 +119,4 @@ async def get_report_movers(report_date: date, mover_type: Optional[str] = None,
       positive_headline=m.positive_headline,
       negative_headline=m.negative_headline
     ) for m in movers
-  ]
-
-@router.get("/", response_model=List[ReportSummaryResponse])
-async def list_reports(start_date: Optional[date] = None, end_date: Optional[date] = None, limit: int = 30, db: Session = Depends(get_db)):
-  """List available reports"""
-  
-  query = db.query(DailyReport)
-  
-  if start_date:
-    query = query.filter(DailyReport.report_date >= start_date)
-  if end_date:
-    query = query.filter(DailyReport.report_date <= end_date)
-  
-  reports = query.order_by(DailyReport.report_date.desc()).limit(limit).all()
-  
-  if not reports:
-    raise HTTPException(status_code=404, detail="No reports available for the given date range")
-  
-  return [
-    ReportSummaryResponse(
-      report_date=r.report_date,
-      generated_at=r.generated_at,
-      index_close=r.index_close,
-      index_change_pct=r.index_change_pct,
-      index_change_points=r.index_change_points,
-      email_sent=r.email_sent,
-      constituents_processed=r.constituents_processed,
-      news_articles_analyzed=r.news_articles_analyzed
-    ) for r in reports
   ]
