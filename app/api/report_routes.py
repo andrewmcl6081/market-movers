@@ -6,7 +6,7 @@ from typing import List, Optional
 
 from app.db.connection import get_db
 from app.db.models import DailyReport, MarketMover
-from app.schemas.report import ReportSummaryResponse, MoverResponse
+from app.schemas.report_summary import ReportSummaryResponse, MoverResponse
 
 router = APIRouter()
 

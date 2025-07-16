@@ -2,7 +2,7 @@ import pytest
 from datetime import date, datetime
 from app.db.models import MarketMover, NewsArticle
 from app.services.news_service import NewsService
-from app.services.sentiment_model import get_sentiment_model
+from app.services.sentiment_service import get_sentiment_model
 
 @pytest.fixture
 def sample_mover(sqlite_session):
@@ -54,7 +54,7 @@ def test_fetch_stock_news(sqlite_session, sample_mover, monkeypatch):
 
 def test_analyze_sentiment_with_real_pipeline(sqlite_session):
   from app.services.news_service import NewsService
-  from app.services.sentiment_model import get_sentiment_model
+  from app.services.sentiment_service import get_sentiment_model
   from app.db.models import MarketMover, NewsArticle
   
   target_date = date.today()

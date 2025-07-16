@@ -5,7 +5,7 @@ from config import get_config
 from sqlalchemy.orm import Session
 from datetime import datetime, date, timedelta
 from app.db.models import MarketMover, NewsArticle
-from app.services.sentiment_model import SentimentModel
+from app.services.sentiment_service import SentimentModel
 from app.services.finnhub_client import get_finnhub_client
 
 logger = logging.getLogger(__name__)

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from datetime import datetime, timezone
 
 from app.db.connection import get_db
-from app.services.sentiment_model import get_sentiment_model
+from app.services.sentiment_service import get_sentiment_model
 from app.services.finnhub_client import get_finnhub_client
 
 router = APIRouter()

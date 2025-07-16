@@ -6,10 +6,10 @@ from typing import Dict, List, Optional
 from app.config import get_config
 from app.db.connection import get_db
 from app.db.models import DailyReport, MarketMover, IndexSummary, IndexConstituent
-from app.services.market_data_service import MarketDataService
+from app.services.index_service import MarketDataService
 from app.services.news_service import NewsService
 from app.services.email_service import EmailService
-from app.services.sentiment_model import get_sentiment_model
+from app.services.sentiment_service import get_sentiment_model
 
 logger = logging.getLogger(__name__)
 

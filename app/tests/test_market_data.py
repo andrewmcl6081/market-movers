@@ -1,7 +1,7 @@
 import pytest
 from datetime import date
 from app.db.models import IndexConstituent, DailyPrice, IndexSummary
-from app.services.market_data_service import MarketDataService
+from app.services.index_service import MarketDataService
 
 @pytest.fixture
 def sample_constituent(sqlite_session):
