@@ -24,10 +24,15 @@ class MarketDataService:
     with open(path, "r") as f:
       return json.load(f)
   
-  def get_index_level(self, db: Session, target_date: date) -> Optional[float]:
-    """Fetch S&P 500 index level (current close price) from DB"""
-    summary = db.query(IndexSummary).filter_by(date=target_date).first()
-    return summary.current_price if summary else None
+  def ensure_constituents_present(self, db: Session) -> int:
+    """Ensure active constituents are in DB, update if missing"""
+    
+    count = db.query(IndexConstituent).filter_by(is_active=True).count()
+    if count == 0:
+      logger.info("No active constituents found, updating...")
+      count = self.update_sp500_constituents(db)
+    
+    return count
   
   def update_sp500_constituents(self, db: Session) -> int:
     try:
@@ -50,7 +55,7 @@ class MarketDataService:
       logger.error(f"Error updating constituents: {e}")
       db.rollback()
       return 0
-  
+    
   def _update_constituent(self, db: Session, company: str, symbol: str, weight: float):
     existing = db.query(IndexConstituent).filter_by(symbol=symbol).first()
     
@@ -68,6 +73,11 @@ class MarketDataService:
         added_date=date.today()
       )
       db.add(new_constituent)
+  
+  def get_index_level(self, db: Session, target_date: date) -> Optional[float]:
+    """Fetch S&P 500 index level (current close price) from DB"""
+    summary = db.query(IndexSummary).filter_by(date=target_date).first()
+    return summary.current_price if summary else None
   
   def fetch_daily_prices(self, db: Session, symbols: List[str], target_date: date) -> Dict[str, Dict]:
     """Fetch daily prices for given symbols"""
@@ -127,38 +137,52 @@ class MarketDataService:
     index_points = (index_contribution_pct * index_level) / 100
     return round(index_points, 2)
   
-  def get_index_summary(self, db: Session, target_date: date) -> Optional[Dict]:
+  def get_or_fetch_index_summary(self, db: Session, target_date: date) -> Optional[Dict]:
+    """Get index summary from DB or fetch from Finnhub"""
+    
+    existing = db.query(IndexSummary).filter_by(date=target_date).first()
+    if existing:
+      return {
+        "current_price": existing.current_price,
+        "change": existing.change,
+        "percent_change": existing.percent_change,
+        "high": existing.high,
+        "low": existing.low,
+        "open": existing.open,
+        "previous_close": existing.previous_close
+      }
+
     try:
       spy_quote = self.client.quote("SPY")
       
-      if spy_quote and spy_quote.get("c") is not None:
-        summary = IndexSummary(
-          date=target_date,
-          current_price=spy_quote["c"],
-          change=spy_quote["d"],
-          percent_change=spy_quote["dp"],
-          high=spy_quote["h"],
-          low=spy_quote["l"],
-          open=spy_quote["o"],
-          previous_close=spy_quote["pc"]
-        )
-        db.add(summary)
-        db.commit()
-        
-        return {
-          "current_price": summary.current_price,
-          "change": summary.change,
-          "percent_change": summary.percent_change,
-          "high": summary.high,
-          "low": summary.low,
-          "open": summary.open,
-          "previous_close": summary.previous_close
-        }
-      else:
-        logger.warning("SPY quote missing or incomplete. Skipping index summary.")
+      if not spy_quote or spy_quote.get("c") is None:
+        logger.warning("SPY quote is missing or incomplete")
         return None
+      
+      summary = IndexSummary(
+        date=target_date,
+        current_price=spy_quote["c"] * 10,
+        change=spy_quote["d"] * 10,
+        percent_change=spy_quote["dp"],
+        high=spy_quote["h"] * 10,
+        low=spy_quote["l"] * 10,
+        open=spy_quote["o"] * 10,
+        previous_close=spy_quote["pc"] * 10
+      )
+      db.add(summary)
+      db.commit()
+      
+      return {
+        "current_price": summary.current_price,
+        "change": summary.change,
+        "percent_change": summary.percent_change,
+        "high": summary.high,
+        "low": summary.low,
+        "open": summary.open,
+        "previous_close": summary.previous_close
+      }
     except Exception as e:
-      logger.error(f"Error fetching SPY quote from Finnhub: {e}")
+      logger.error(f"Error fetching index summary: {e}")
       db.rollback()
       return None
 
