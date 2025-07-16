@@ -22,13 +22,3 @@ class MoverResponse(BaseModel):
   mover_type: str
   positive_headline: Optional[str] = None
   negative_headline: Optional[str] = None
-
-class IndexSummaryResponse(BaseModel):
-  date: date
-  current_price: float
-  change: float
-  percent_change: float
-  high: float
-  low: float
-  open: float
-  previous_close: float
