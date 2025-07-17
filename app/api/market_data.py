@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from app.db.connection import get_db
 from app.db.models import IndexConstituent, DailyPrice, IndexSummary
-from app.services.index_service import MarketDataService
+from app.services.market_data_service import MarketDataService
 from app.schemas.index_summary import ConstituentResponse, PriceResponse, IndexResponse, MarketStatusResponse
 
 router = APIRouter()
