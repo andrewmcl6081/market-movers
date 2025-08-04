@@ -1,7 +1,6 @@
 import logging
-import requests
 from typing import List, Dict
-from config import get_config
+from app.config import get_config
 from sqlalchemy.orm import Session
 from datetime import datetime, date, timedelta
 from app.db.models import MarketMover, NewsArticle
@@ -23,11 +22,11 @@ class NewsService:
         logger.warning(f"No market mover found for {symbol} on {target_date}")
         return []
       
-      from_date = (target_date - timedelta(hours=self.config.NEWS_LOOKBACK_HOURS)).strftime("%Y-%m-%d")
-      to_date = target_date.strftime("%Y-%m-%d")
+      from_date = (target_date - timedelta(hours=self.config.NEWS_LOOKBACK_HOURS)).isoformat()
+      to_date = target_date.isoformat()
       
       articles = self.client.company_news(symbol=symbol, _from=from_date, to=to_date)
-      logger.info(f"Finnhub returned {len(articles)} articles for {symbol}")
+      logger.info(f"Finnhub returned {len(articles)} articles for {symbol} from {from_date} to {to_date}")
       
       for article in articles:
         url = article.get("url")
@@ -42,7 +41,7 @@ class NewsService:
             summary=article.get("summary", ""),
             url=url,
             source=article.get("source", ""),
-            published_at=datetime.fromisoformat(article.get("datetime")).astimezone() if article.get("datetime") else None
+            published_at=datetime.fromtimestamp(article.get("datetime")).astimezone() if article.get("datetime") else None
           )
           db.add(news_article)
       
