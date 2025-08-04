@@ -15,3 +15,5 @@ model_cache/
 # Env and secrets
 .env
 .env.*
+
+.vscode/
