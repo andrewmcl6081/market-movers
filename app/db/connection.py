@@ -1,28 +1,24 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.engine import Engine
+from functools import lru_cache
+from typing import Generator, Optional
 import logging
-from typing import Generator
 
-from config import get_settings
-from db.base import Base
+from app.config import get_config
+from app.db.base import Base
 
 logger = logging.getLogger(__name__)
-settings = get_settings()
 
-engine = create_engine(
-  settings.DATABASE_URL,
-  pool_pre_ping=True,
-  echo=False
-)
+@lru_cache()
+def get_engine():
+  config = get_config()
+  return create_engine(config.DATABASE_URL, pool_pre_ping=True, echo=(config.ENVIRONMENT != "production"))
 
-# Create SessionLocal Class
-SessionLocal = sessionmaker(
-  autocommit=False,
-  autoflush=False,
-  bind=engine
-)
+engine = get_engine()
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-def get_db() -> Generator[Session, None, None]:
+def get_db():
   db = SessionLocal()
   try:
     yield db
@@ -30,21 +26,15 @@ def get_db() -> Generator[Session, None, None]:
     db.close()
 
 def init_db():
-  try:
-    from db import models
-    
-    Base.metadata.create_all(bind=engine)
-    logger.info("Database tables created successfully")
-  except Exception as e:
-    logger.error(f"Error creating database tables: {e}")
-    raise
+  Base.metadata.create_all(bind=engine)
+  logger.info("Database tables created successfully")
 
-def test_connection():
+def test_connection(engine: Optional[Engine] = None) -> bool:
   try:
     with engine.connect() as conn:
-      result = conn.execute("SELECT 1")
-      logger.info("Database connection successful")
-      return True
+        conn.execute(text("SELECT 1"))
+    logger.info("Database connection successful")
+    return True
   except Exception as e:
     logger.error(f"Database connection failed: {e}")
     return False

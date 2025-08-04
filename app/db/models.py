@@ -1,31 +1,23 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Date, Boolean, JSON, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
-from datetime import datetime
-from db.base import Base
+from datetime import datetime, timezone
+from app.db.base import Base
 
 class IndexConstituent(Base):
-  """S&P 500 consstituents with their weights"""
   __tablename__ = "index_constituents"
   
   id = Column(Integer, primary_key=True, index=True)
   symbol = Column(String(10), unique=True, nullable=False, index=True)
   company_name = Column(String(255))
-  sector = Column(String(100))
   weight = Column(Float)
-  
-  # When this constituent was added/updated
   added_date = Column(Date)
-  removed_date = Column(Date)
   is_active = Column(Boolean, default=True)
+  updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
   
-  updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-  
-  # Relationships
   daily_prices = relationship("DailyPrice", back_populates="constituent", cascade="all, delete-orphan")
   market_moves = relationship("MarketMover", back_populates="constituent", cascade="all, delete-orphan")
 
 class DailyPrice(Base):
-  """Daily price data for stocks"""
   __tablename__ = "daily_prices"
   
   id = Column(Integer, primary_key=True, index=True)
@@ -41,8 +33,7 @@ class DailyPrice(Base):
   low = Column(Float)
   open = Column(Float)
   previous_close = Column(Float)
-  
-  created_at = Column(DateTime, default=datetime.utcnow)
+  created_at = Column(DateTime, default=datetime.now(timezone.utc))
   
   # Relationships
   constituent = relationship("IndexConstituent", back_populates="daily_prices")
@@ -57,7 +48,6 @@ class IndexSummary(Base):
   
   id = Column(Integer, primary_key=True)
   date = Column(Date, unique=True, nullable=False)
-  
   current_price = Column(Float)
   change = Column(Float)
   percent_change = Column(Float)
@@ -95,7 +85,7 @@ class MarketMover(Base):
   negative_headline_url = Column(Text)
   
   # Metadata
-  created_at = Column(DateTime, default=datetime.utcnow)
+  created_at = Column(DateTime, default=datetime.now(timezone.utc))
   
   # Relationships
   constituent = relationship("IndexConstituent", back_populates="market_moves")
@@ -129,7 +119,7 @@ class DailyReport(Base):
   recipients = Column(JSON)
   
   # Generation metadata
-  generated_at = Column(DateTime, default=datetime.utcnow)
+  generated_at = Column(DateTime, default=datetime.now(timezone.utc))
   generation_time_seconds = Column(Float)
   
   # Data quality
@@ -168,15 +158,10 @@ class NewsArticle(Base):
   sentiment_score = Column(Float)
   is_top_headline = Column(Boolean, default=False)
   
-  created_at = Column(DateTime, default=datetime.utcnow)
+  created_at = Column(DateTime, default=datetime.now(timezone.utc))
   
   # Relationships
   market_mover = relationship("MarketMover", back_populates="news_articles")
-  
-  def __repr__(self):
-    return (f"<NewsArticle(id={self.id}, symbol={self.symbol}, "
-            f"headline={self.headline[:30]!r}, score={self.sentiment_score}, "
-            f"label={self.sentiment_label}, is_top={self.is_top_headline})>")
 
 class UserSubscription(Base):
   """User email subscriptions for daily reports"""
@@ -186,7 +171,7 @@ class UserSubscription(Base):
   email = Column(String(255), unique=True, nullable=False, index=True)
   send_daily_report = Column(Boolean, default=True)
   
-  subscribed_at = Column(DateTime, default=datetime.utcnow)
+  subscribed_at = Column(DateTime, default=datetime.now(timezone.utc))
   unsubscribed_at = Column(DateTime)
   
   last_email_sent = Column(DateTime)
@@ -194,15 +179,4 @@ class UserSubscription(Base):
   
   timezone = Column(String(50), default="America/New_York")
   
-  updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-class SystemLog(Base):
-  """System logs for monitoring"""
-  __tablename__ = "system_logs"
-  
-  id = Column(Integer, primary_key=True, index=True)
-  timestamp = Column(DateTime, default=datetime.utcnow, index=True)
-  level = Column(String(20))
-  component = Column(String(50))
-  message = Column(Text)
-  details = Column(JSON)
+  updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
