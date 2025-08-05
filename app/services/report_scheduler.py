@@ -36,8 +36,11 @@ class ReportScheduler:
         replace_existing=True
       )
       
-      self.scheduler.start()
-      logger.info(f"Scheduler started. Daily report scheduled at {self.config.REPORT_TIME} {self.config.TIMEZONE}")
+      if not self.scheduler.running:
+        self.scheduler.start()
+        logger.info(f"Scheduler started. Daily report scheduled at {self.config.REPORT_TIME} {self.config.TIMEZONE}")
+      else:
+        logger.info("Scheduler already running — start() skipped.")
     except Exception as e:
       logger.error(f"Failed to start scheduler: {e}")
       raise

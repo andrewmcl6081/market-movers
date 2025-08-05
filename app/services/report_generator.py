@@ -10,6 +10,7 @@ from app.services.market_data_service import MarketDataService
 from app.services.news_service import NewsService
 from app.services.email_service import EmailService
 from app.services.sentiment_service import get_sentiment_model
+from app.utils.ec2 import delayed_termination
 
 logger = logging.getLogger(__name__)
 
@@ -118,6 +119,10 @@ class ReportGenerator:
           db.commit()
       else:
         logger.info("Test mode: Skipping email send")
+      
+      if self.config.ENVIRONMENT == "production":
+        logger.info("Report finished successfully — scheduling instance termination")
+        delayed_termination(region=self.config.AWS_REGION, delay=30)
       
       return True
     except Exception as e:

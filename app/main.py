@@ -28,7 +28,8 @@ async def lifespan(app: FastAPI):
   
   logger.info("Starting Market Movers Daily API...")
   
-  init_db()
+  if config.ENVIRONMENT in ("development", "test"):
+    init_db()
   
   scheduler.start()
   logger.info("Report scheduler started")

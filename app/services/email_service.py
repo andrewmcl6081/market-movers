@@ -81,8 +81,8 @@ class EmailService:
         logger.warning(f"Failed recipients: {', '.join(failed_recipients)}")
         
       return success_count > 0
-    except Exception as e:
-      logger.error(f"Error sending emails: {e}")
+    except Exception:
+      logger.error("Error sending emails")
       return False
 
   def send_error_notification(self, error_message: str, report_date: date) -> bool:
