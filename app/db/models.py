@@ -3,6 +3,9 @@ from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from app.db.base import Base
 
+def utc_now():
+  return datetime.now(timezone.utc)
+
 class IndexConstituent(Base):
   __tablename__ = "index_constituents"
   
@@ -12,7 +15,7 @@ class IndexConstituent(Base):
   weight = Column(Float)
   added_date = Column(Date)
   is_active = Column(Boolean, default=True)
-  updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+  updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
   
   daily_prices = relationship("DailyPrice", back_populates="constituent", cascade="all, delete-orphan")
   market_moves = relationship("MarketMover", back_populates="constituent", cascade="all, delete-orphan")
@@ -33,7 +36,7 @@ class DailyPrice(Base):
   low = Column(Float)
   open = Column(Float)
   previous_close = Column(Float)
-  created_at = Column(DateTime, default=datetime.now(timezone.utc))
+  created_at = Column(DateTime, default=utc_now)
   
   # Relationships
   constituent = relationship("IndexConstituent", back_populates="daily_prices")
@@ -85,7 +88,7 @@ class MarketMover(Base):
   negative_headline_url = Column(Text)
   
   # Metadata
-  created_at = Column(DateTime, default=datetime.now(timezone.utc))
+  created_at = Column(DateTime, default=utc_now)
   
   # Relationships
   constituent = relationship("IndexConstituent", back_populates="market_moves")
@@ -119,7 +122,7 @@ class DailyReport(Base):
   recipients = Column(JSON)
   
   # Generation metadata
-  generated_at = Column(DateTime, default=datetime.now(timezone.utc))
+  generated_at = Column(DateTime, default=utc_now)
   generation_time_seconds = Column(Float)
   
   # Data quality
@@ -158,7 +161,7 @@ class NewsArticle(Base):
   sentiment_score = Column(Float)
   is_top_headline = Column(Boolean, default=False)
   
-  created_at = Column(DateTime, default=datetime.now(timezone.utc))
+  created_at = Column(DateTime, default=utc_now)
   
   # Relationships
   market_mover = relationship("MarketMover", back_populates="news_articles")
@@ -171,7 +174,7 @@ class UserSubscription(Base):
   email = Column(String(255), unique=True, nullable=False, index=True)
   send_daily_report = Column(Boolean, default=True)
   
-  subscribed_at = Column(DateTime, default=datetime.now(timezone.utc))
+  subscribed_at = Column(DateTime, default=utc_now)
   unsubscribed_at = Column(DateTime)
   
   last_email_sent = Column(DateTime)
@@ -179,4 +182,4 @@ class UserSubscription(Base):
   
   timezone = Column(String(50), default="America/New_York")
   
-  updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+  updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
