@@ -17,3 +17,4 @@ model_cache/
 .env.*
 
 .vscode/
+ec2/
