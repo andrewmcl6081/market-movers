@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Market Movers Daily Report - {{ report_date.strftime('%B %d, %Y') }}</title>
+  <!--[if mso]>
+    <noscript>
+      <xml>
+        <o:OfficeDocumentSettings>
+          <o:PixelsPerInch>96</o:PixelsPerInch>
+        </o:OfficeDocumentSettings>
+      </xml>
+    </noscript>
+  <![endif]-->
+  <style>
+    body, table, td, a { 
+      -webkit-text-size-adjust: 100%; 
+      -ms-text-size-adjust: 100%; 
+    }
+
+    table, td { 
+      mso-table-lspace: 0pt; 
+      mso-table-rspace: 0pt; 
+    }
+
+    img { 
+      -ms-interpolation-mode: bicubic;
+      border: 0;
+      height: auto;
+      line-height: 100%;
+      outline: none;
+      text-decoration: none;
+    }
+
+    table {
+      border-collapse: collapse !important;
+    }
+
+    body { 
+      height: 100% !important; 
+      margin: 0 !important; 
+      padding: 0 !important; 
+      width: 100% !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f4f4f4;
+    }
+
+    .email-container {
+      background-color: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .header {
+      padding: 40px 20px;
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      border-radius: 8px 8px 0 0;
+      text-align: center;
+    }
+
+    .header-title {
+      margin: 0;
+      color: #ffffff;
+      font-size: 28px;
+      font-weight: 700;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .header-date {
+      margin: 10px 0 0;
+      color: #e0e0e0;
+      font-size: 16px;
+    }
+
+    .content {
+      padding: 30px;
+    }
+
+    .footer {
+      padding: 30px;
+      background-color: #f8f9fa;
+      border-radius: 0 0 8px 8px;
+      text-align: center;
+    }
+
+    .market-summary {
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      padding: 25px;
+      margin-bottom: 30px;
+    }
+
+    .market-summary.positive {
+      border-left: 4px solid #28a745;
+    }
+
+    .market-summary.negative {
+      border-left: 4px solid #dc3545;
+    }
+
+    .section-title {
+      margin: 0 0 20px 0;
+      color: #333333;
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .stats-container {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+    }
+
+    .stat-box {
+      display: table-cell;
+      text-align: center;
+      padding: 0 10px;
+    }
+
+    .stat-label {
+      margin: 0;
+      color: #666666;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .stat-value {
+      margin: 5px 0 0;
+      color: #333333;
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .stat-value.positive {
+      color: #28a745;
+    }
+
+    .stat-value.negative {
+      color: #dc3545;
+    }
+
+    .movers-section {
+      margin-bottom: 30px;
+    }
+
+    .movers-title {
+      margin: 0 0 20px 0;
+      font-size: 22px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+    }
+
+    .movers-title.gainers {
+      color: #28a745;
+    }
+
+    .movers-title.losers {
+      color: #dc3545;
+    }
+
+    .movers-icon {
+      margin-right: 10px;
+      font-size: 24px;
+    }
+
+    .stock-card {
+      background-color: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+
+    .stock-card.gainer {
+      border-left: 3px solid #28a745;
+    }
+
+    .stock-card.loser {
+      border-left: 3px solid #dc3545;
+    }
+
+    .stock-info {
+      display: table;
+      width: 100%;
+    }
+
+    .stock-details {
+      display: table-cell;
+      width: 60%;
+      vertical-align: top;
+    }
+
+    .stock-metrics {
+      display: table-cell;
+      width: 40%;
+      text-align: right;
+      vertical-align: top;
+    }
+
+    .stock-symbol {
+      margin: 0;
+      font-weight: 600;
+      color: #333;
+      font-size: 16px;
+    }
+
+    .stock-name {
+      margin: 3px 0 0;
+      color: #666;
+      font-size: 14px;
+    }
+
+    .stock-headline {
+      margin: 8px 0 0;
+      color: #555;
+      font-size: 13px;
+      font-style: italic;
+      line-height: 1.4;
+    }
+
+    .stock-change {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .stock-change.positive {
+      color: #28a745;
+    }
+
+    .stock-change.negative {
+      color: #dc3545;
+    }
+
+    .stock-price {
+      margin: 3px 0 0;
+      color: #666;
+      font-size: 14px;
+    }
+
+    .stock-impact {
+      margin: 3px 0 0;
+      color: #888;
+      font-size: 12px;
+    }
+
+    .insights-box {
+      padding: 20px;
+      background-color: #f0f8ff;
+      border-radius: 8px;
+      margin-bottom: 30px;
+    }
+
+    .insights-title {
+      margin: 0 0 15px 0;
+      color: #333;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .insights-text {
+      margin: 0;
+      color: #555;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .footer-text {
+      margin: 0 0 10px 0;
+      color: #666;
+      font-size: 14px;
+    }
+
+    .footer-links {
+      margin: 20px 0;
+    }
+
+    .footer-link {
+      color: #888;
+      font-size: 12px;
+      text-decoration: underline;
+      margin: 0 10px;
+    }
+
+    .copyright {
+      margin: 20px 0 0 0;
+      color: #999;
+      font-size: 12px;
+    }
+
+    @media screen and (max-width: 600px) {
+      .email-container {
+        width: 100% !important;
+      }
+
+      .content {
+        padding: 20px !important;
+      }
+
+      .stats-container,
+      .stock-info {
+        display: block !important;
+      }
+
+      .stat-box,
+      .stock-details,
+      .stock-metric {
+        display: block !important;
+        width: 100% !important;
+        text-align: left !important;
+        margin-bottom: 15px;
+      }
+
+      .stock-metrics {
+        border-top: 1px solid #e0e0e0;
+        padding-top: 10px;
+      }
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body { background-color: #1a1a1a !important; }
+      .email-container { background-color: #2d2d2d !important; }
+      .header { background: linear-gradient(135deg, #0f1f3a 0%, #1a3050 100%) !important; }
+      .market-summary { background-color: #3a3a3a !important; }
+      .stock-card { background-color: #3a3a3a !important; }
+      .insights-box { background-color: #2a3a4a !important; }
+      .footer { background-color: #2d2d2d !important; }
+      
+      .section-title,
+      .stock-symbol,
+      .insights-title { color: #ffffff !important; }
+      
+      .stock-name,
+      .stock-headline,
+      .insights-text,
+      .footer-text { color: #cccccc !important; }
+    }
+  </style>
+</head>
+<body>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tr>
+      <td align="center" style="padding: 40px 0;">
+        <div class="email-container">
+          <div class="header">
+            <h1 class="header-title">📈 Market Movers Daily</h1>
+            <p class="header-date">{{ report_date.strftime('%A, %B %d, %Y') }}</p>
+          </div>
+
+          <div class="content">
+            <div class="market-summary {% if index_summary.percent_change > 0 %}positive{% else %}negative{% endif %}">
+              <h2 class="section-title">S&P 500 Summary</h2>
+              <div class="stats-container">
+                <div class="stat-box">
+                  <p class="stat-label">Close</p>
+                  <p class="stat-value">{{ "{:,.2f}".format(index_summary.current_price) }}</p>
+                </div>
+                <div class="stat-box">
+                  <p class="stat-label">Change</p>
+                  <p class="stat-value {% if index_summary.percent_change > 0 %}positive{% else %}negative{% endif %}">{{ "{:+.2f}".format(index_summary.change) }}</p>
+                </div>
+                <div class="stat-box">
+                  <p class="stat-label">Percent</p>
+                  <p class="stat-value {% if index_summary.percent_change > 0 %}positive{% else %}negative{% endif %}">{{ "{:+.2f}%".format(index_summary.percent_change) }}</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="movers-section">
+              <h3 class="movers-title gainers">
+                <span class="movers-icon">🚀</span>
+                Top Gainers
+              </h3>
+              {% for gainer in gainers %}
+              <div class="stock-card gainer">
+                <div class="stock-info">
+                  <div class="stock-details">
+                    <p class="stock-symbol">{{ gainer.symbol }}</p>
+                    <p class="stock-name">{{ gainer.company_name }}</p>
+                    {% if gainer.positive_headline %}
+                    <p class="stock-headline">
+                      "{{ gainer.positive_headline[:100] }}{% if gainer.positive_headline|length > 100 %}...{% endif %}"
+                    </p>
+                    {% endif %}
+                  </div>
+                  <div class="stock-metrics">
+                    <p class="stock-change positive">+{{ "{:.2f}%".format(gainer.percent_change) }}</p>
+                    <p class="stock-price">${{ "{:.2f}".format(gainer.close_price) }}</p>
+                    <p class="stock-impact">{{ "{:+.2f}".format(gainer.index_points_contribution) }} pts</p>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+
+            <div class="movers-section">
+              <h3 class="movers-title losers">
+                <span class="movers-icon">📉</span>
+                Top Losers
+              </h3>
+              {% for loser in losers %}
+              <div class="stock-card loser">
+                <div class="stock-info">
+                  <div class="stock-details">
+                    <p class="stock-symbol">{{ loser.symbol }}</p>
+                    <p class="stock-name">{{ loser.company_name }}</p>
+                    {% if loser.negative_headline %}
+                    <p class="stock-headline">
+                      "{{ loser.negative_headline[:100] }}{% if loser.negative_headline|length > 100 %}...{% endif %}"
+                    </p>
+                    {% endif %}
+                  </div>
+                  <div class="stock-metrics">
+                    <p class="stock-change negative">{{ "{:.2f}%".format(loser.percent_change) }}</p>
+                    <p class="stock-price">${{ "{:.2f}".format(loser.close_price) }}</p>
+                    <p class="stock-impact">{{ "{:.2f}".format(loser.index_points_contribution) }} pts</p>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+
+            {% if market_insights %}
+            <div class="insights-box">
+              <h3 class="insights-title">💡 Market Insights</h3>
+              <p class="insights-text">{{ market_insights }}</p>
+            </div>
+            {% endif %}
+          </div>
+
+          <div class="footer">
+            <p class="footer-text">
+              This report is generated automatically based on market data and news sentiment analysis.
+            </p>
+            <p class="footer-text">
+              Data sources: S&P 500 constituents • Finnhub API • News sentiment analysis
+            </p>
+            <div class="footer-links">
+              <a href="{{ unsubscribe_url }}" class="footer-link">Unsubscribe</a>
+              <a href="{{ preferences_url }}" class="footer-link">Update Preferences</a>
+            </div>
+            <p class="copyright">
+              © {{ current_year }} Market Movers Daily. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
