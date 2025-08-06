@@ -81,11 +81,15 @@ class NewsService:
       movers = db.query(MarketMover).filter_by(date=target_date).all()
       
       for mover in movers:
-        # Filter articles for this stock symbol
+        # Articels directly related to this symbol
         mover_articles = [a for a in articles if a.symbol == mover.symbol]
         
         if not mover_articles:
-          continue
+          logger.warning(f"No articles for {mover.symbol}, trying fallback source (SPY)")
+          fallback_articles = self.fetch_fallback_articles(db, mover.symbol, target_date)
+          mover_articles = fallback_articles
+          if not mover_articles:
+            continue
         
         # Determine stock movement direction
         direction = "positive" if mover.percent_change > 0 else "negative" if mover.percent_change < 0 else None
@@ -93,12 +97,14 @@ class NewsService:
           continue
         
         # Filter for directionally-aligned articles
-        aligned_articles = [
-          a for a in mover_articles if a.sentiment_label == direction
-        ]
+        aligned = [a for a in mover_articles if a.sentiment_label == direction]
         
         # Sort by sentiment score and take top 3
-        top_articles = sorted(aligned_articles, key=lambda a: a.sentiment_score, reverse=True)[:3]
+        top_articles = sorted(
+          aligned if aligned else mover_articles,
+          key=lambda a: a.sentiment_score or 0,
+          reverse=True
+        )[:3]
         
         for a in mover_articles:
           a.is_top_headline = False
@@ -106,21 +112,58 @@ class NewsService:
         for article in top_articles:
           article.is_top_headline = True
         
-        if top_articles:
-          best = top_articles[0]
-          if direction == "positive":
-            mover.positive_headline = best.headline
-            mover.positive_headline_score = best.sentiment_score
-            mover.positive_headline_url = best.url
-          elif direction == "negative":
-            mover.negative_headline = best.headline
-            mover.negative_headline_score = best.sentiment_score
-            mover.negative_headline_url = best.url
+        best = top_articles[0]
+        if direction == "positive":
+          mover.positive_headline = best.headline
+          mover.positive_headline_score = best.sentiment_score
+          mover.positive_headline_url = best.url
+        elif direction == "negative":
+          mover.negative_headline = best.headline
+          mover.negative_headline_score = best.sentiment_score
+          mover.negative_headline_url = best.url
       
       db.commit()
       logger.info(f"Completed sentiment analysis for {len(articles)} articles")
-    
     except Exception as e:
       logger.error(f"Error in sentiment analysis: {e}")
       db.rollback()
+  
+  def fetch_fallback_articles(self, db: Session, symbol: str, target_date: date) -> List[NewsArticle]:
+    try:
+      from_date = (target_date - timedelta(hours=self.config.NEWS_LOOKBACK_HOURS)).isoformat()
+      to_date = target_date.isoformat()
+      fallback_symbol = "SPY"
+      
+      logger.info(f"Fetching fallback news for {symbol} using {fallback_symbol}")
+      articles = self.client.company_news(fallback_symbol, _from=from_date, to=to_date)
+      
+      mover = db.query(MarketMover).filter_by(symbol=symbol, date=target_date).first()
+      if not mover:
+        return []
+      
+      news_articles = []
+      for article in articles[:3]:
+        url = article.get("url")
+        if db.query(NewsArticle).filter_by(symbol=symbol, url=url).first():
+          continue
+        
+        a = NewsArticle(
+          market_mover_id=mover.id,
+          symbol=symbol,
+          date=target_date,
+          headline=article.get("headline", "")[:500],
+          summary=article.get("summary", ""),
+          url=url,
+          source=article.get("source", ""),
+          published_at=datetime.fromtimestamp(article.get("datetime")).astimezone() if article.get("datetime") else None,
+        )
+        db.add(a)
+        news_articles.append(a)
+      
+      db.commit()
+      return news_articles
+    except Exception:
+      logger.exception(f"Error fetching fallback articles for {symbol}")
+      db.rollback()
+      return []
     

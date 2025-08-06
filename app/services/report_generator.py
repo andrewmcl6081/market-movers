@@ -1,7 +1,9 @@
+import os
 import logging
 from datetime import date, datetime
 from sqlalchemy.orm import Session
-from typing import Dict, List, Optional
+from typing import Dict, List
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from app.config import get_config
 from app.db.connection import get_db
@@ -20,6 +22,9 @@ class ReportGenerator:
     self.market_service = MarketDataService()
     self.news_service = NewsService(get_sentiment_model())
     self.email_service = EmailService()
+    
+    template_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
+    self.jinja_env = Environment(loader=FileSystemLoader(template_dir), autoescape=select_autoescape(["html", "xml"]))
   
   def generate_and_send_report(self, report_date: date) -> bool:
     """Generate and send the daily report"""
@@ -135,29 +140,81 @@ class ReportGenerator:
     finally:
       db.close()
     
-  def generate_html_report(self, report_date: date, index_summary: Dict, gainers: List[Dict], losers: List[Dict], db: Session):
+  def generate_html_report(self, report_date: date, index_summary: Dict, gainers: List[Dict], losers: List[Dict], db: Session) -> str:
     """Generate HTML content for the report"""
+  
+    movers = db.query(MarketMover).filter_by(date=report_date).all()
     
-    html = f"""
-    <html>
-    <body>
-        <h1>Market Movers Daily Report - {report_date.strftime('%B %d, %Y')}</h1>
-        
-        <h2>S&P 500 Summary</h2>
-        <p>Close: {index_summary['current_price']:,.2f}</p>
-        <p>Change: {index_summary['change']:+.2f} ({index_summary['percent_change']:+.2f}%)</p>
-        
-        <h2>Top Gainers</h2>
-        <ul>
-        {"".join(f"<li>{g['symbol']} - {g['company_name']}: {g['percent_change']:+.2f}%</li>" for g in gainers)}
-        </ul>
-        
-        <h2>Top Losers</h2>
-        <ul>
-        {"".join(f"<li>{l['symbol']} - {l['company_name']}: {l['percent_change']:+.2f}%</li>" for l in losers)}
-        </ul>
-    </body>
-    </html>
-    """
+    gainers_with_headlines = []
+    losers_with_headlines = []
     
-    return html
+    for gainer in gainers:
+      mover_data = next((m for m in movers if m.symbol == gainer["symbol"] and m.mover_type == "gainer"), None)
+      gainer_dict = gainer.copy()
+      if mover_data:
+        gainer_dict["positive_headline"] = mover_data.positive_headline
+        gainer_dict["positive_headline_url"] = mover_data.positive_headline_url
+      gainers_with_headlines.append(gainer_dict)
+    
+    for loser in losers:
+      mover_data = next((m for m in movers if m.symbol == loser["symbol"] and m.mover_type == "loser"), None)
+      loser_dict = loser.copy()
+      if mover_data:
+        loser_dict["negative_headline"] = mover_data.negative_headline
+        loser_dict["negative_headline_url"] = mover_data.negative_headline_url
+      losers_with_headlines.append(loser_dict)
+    
+    market_insights = self.generate_market_insights(index_summary, gainers, losers)
+    
+    template = self.jinja_env.get_template("email/daily_report.html")
+    
+    context = {
+      "report_date": report_date,
+      "index_summary": index_summary,
+      "gainers": gainers_with_headlines,
+      "losers": losers_with_headlines,
+      "market_insights": market_insights,
+      "current_year": datetime.now().year,
+      "unsubscribe_url": f"{self.config.API_V1_STR}/subscriptions/unsubscribe",
+      "preferences_url": f"{self.config.API_V1_STR}/subscriptions/preferences"
+    }
+    
+    return template.render(**context)
+  
+  def generate_market_insights(self, index_summary: Dict, gainers: List[Dict], losers: List[Dict]) -> str:
+    total_gainer_impact = sum(g.get("index_points_contribution", 0) for g in gainers)
+    total_loser_impact = sum(l.get("index_points_contribution", 0) for l in losers)
+    net_top_movers_impact = total_gainer_impact + total_loser_impact
+    
+    if index_summary["percent_change"] > 1:
+      sentiment = "strongly positive"
+    elif index_summary["percent_change"] > 0:
+      sentiment = "positive"
+    elif index_summary["percent_change"] < -1:
+      sentiment = "strongly negative"
+    elif index_summary["percent_change"] < 0:
+      sentiment = "negative"
+    else:
+      sentiment = "flat"
+    
+    insights = f"The market showed {sentiment} momentum today."
+    
+    if gainers and losers:
+      insights += f"Top gainers contributed {total_gainer_impact:+.2f} points while top losers pulled the index down by {total_loser_impact:.2f} points, "
+      insights += f"for a net impact of {net_top_movers_impact:+.2f} points from the day's biggest movers. "
+    
+    if gainers and losers:
+      avg_gainer_move = sum(g["percent_change"] for g in gainers) / len(gainers)
+      avg_loser_move = sum(abs(l["percent_change"]) for l in losers) / len(losers)
+      
+      if avg_gainer_move > 3 or avg_loser_move > 3:
+        insights += "Large individual stock movements indicate heightened market volatility. "
+      elif avg_gainer_move < 1.5 and avg_loser_move < 1.5:
+        insights += "Relatively modest individual stock movements suggest a calm trading session. "
+        
+    if abs(index_summary["percent_change"]) < 0.5 and (total_gainer_impact + abs(total_loser_impact)) > 10:
+      insights += "Despite the modest index change, significant underlying stock movements were observed. "
+    
+    return insights.strip()
+    
+    

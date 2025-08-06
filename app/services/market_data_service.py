@@ -109,6 +109,7 @@ class MarketDataService:
     Fetch the top S&P 500 constituents from S3, deactivate all existing entries,
     upsert the new list, and return how many were processed.
     """
+    
     logger.info(f"Loading S&P 500 constituents from S3 for {target_date}")
     
     try:
@@ -173,12 +174,11 @@ class MarketDataService:
     """Fetch S&P 500 index level (current close price) from DB"""
     
     try:
-      logger.debug(f"Querying IndexSummary for date {target_date}")
       summary = db.query(IndexSummary).filter_by(date=target_date).one_or_none()
       
       if summary:
         price = summary.current_price
-        logger.info(f"Found index level {price} for date {target_date}")
+        logger.debug(f"Index level for {target_date}: {price}")
         return price
       
       logger.warning(f"No IndexSummary record found for date {target_date}")
@@ -201,7 +201,7 @@ class MarketDataService:
     for idx, symbol in enumerate(symbols, start=1):
       try:
         if idx % 10 == 0:
-          logger.info(f"Progress: {idx}/{total} symbols")
+          logger.info(f"[{idx}/{total}] Processed symbol: {symbol}")
         
         quote = self.client.quote(symbol)
         if not quote or quote.get("c") is None:
@@ -218,11 +218,9 @@ class MarketDataService:
           "previous_close": quote["pc"]
         }
         prices[symbol] = price_data
-        logger.debug(f"Fetched {symbol} price data")
         
         existing = db.query(DailyPrice).filter_by(symbol=symbol, date=target_date).one_or_none()
         if existing:
-          logger.debug(f"DailyPrice exists for {symbol} on {target_date}")
           continue
         
         constituent = db.query(IndexConstituent).filter_by(symbol=symbol).one_or_none()
@@ -242,7 +240,6 @@ class MarketDataService:
           open=quote["o"],
           previous_close=quote["pc"]
         ))
-        logger.info(f"Queued DailyPrice insert for {symbol}")
       except Exception:
         logger.exception(f"Error processing price for {symbol}")
         
@@ -344,10 +341,9 @@ class MarketDataService:
       movers = []
       for c in constituents:
         p = prices.get(c.symbol)
+        
         if not p or p.percent_change is None:
           logger.debug(f"Skipping {c.symbol}: missing data")
-          continue
-        if abs(p.percent_change) <= 0.5:
           continue
         
         impact = self.calculate_index_impact(
@@ -355,6 +351,7 @@ class MarketDataService:
           weight=c.weight,
           index_level=index_level
         )
+        
         mover = {
           "symbol": c.symbol,
           "company_name": c.company_name,
