@@ -83,19 +83,6 @@ async def generate_report_now(background_tasks: BackgroundTasks, target_date: Op
       "generated_at": existing.generated_at
     }
   
-  if config.ENVIRONMENT == "development":
-    dev_email = "andrewmcl6081@gmail.com"
-    dev_timezone = config.TIMEZONE
-    
-    sub = db.query(UserSubscription).filter_by(email=dev_email).first()
-    if not sub:
-      db.add(UserSubscription(
-        email=dev_email,
-        send_daily_report=True,
-        timezone=dev_timezone
-      ))
-      db.commit()
-  
   background_tasks.add_task(
     ReportGenerator().generate_and_send_report,
     target_date
