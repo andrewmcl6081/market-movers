@@ -93,7 +93,7 @@ class MarketDataService:
     If not, fetch and insert them from S3
     """
     
-    today = date.today()
+    today = datetime.now(timezone.utc).date()
     try:
       active_count = db.query(IndexConstituent).filter_by(is_active=True).count()
       
@@ -146,8 +146,8 @@ class MarketDataService:
         "company_name": item["company"],
         "weight": item["weight"],
         "is_active": True,
-        "added_date": date.today(),
-        "updated_at": datetime.now(timezone.utc),
+        "added_date": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc).date(),
       }
       for item in items
     ]

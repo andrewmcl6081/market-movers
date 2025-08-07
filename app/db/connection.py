@@ -1,8 +1,8 @@
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.engine import Engine
 from functools import lru_cache
-from typing import Generator, Optional
+from typing import Optional
 import logging
 
 from app.config import get_config

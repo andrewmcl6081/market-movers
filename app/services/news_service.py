@@ -2,7 +2,7 @@ import logging
 from typing import List, Dict
 from app.config import get_config
 from sqlalchemy.orm import Session
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from app.db.models import MarketMover, NewsArticle
 from app.services.sentiment_service import SentimentModel
 from app.services.finnhub_client import get_finnhub_client
@@ -22,8 +22,9 @@ class NewsService:
         logger.warning(f"No market mover found for {symbol} on {target_date}")
         return []
       
-      from_date = (target_date - timedelta(hours=self.config.NEWS_LOOKBACK_HOURS)).isoformat()
-      to_date = target_date.isoformat()
+      target_datetime = datetime.combine(target_date, datetime.min.time(), tzinfo=timezone.utc)
+      from_date = (target_datetime - timedelta(hours=24)).date().isoformat()
+      to_date = target_datetime.date().isoformat()
       
       articles = self.client.company_news(symbol=symbol, _from=from_date, to=to_date)
       logger.info(f"Finnhub returned {len(articles)} articles for {symbol} from {from_date} to {to_date}")
@@ -41,7 +42,7 @@ class NewsService:
             summary=article.get("summary", ""),
             url=url,
             source=article.get("source", ""),
-            published_at=datetime.fromtimestamp(article.get("datetime")).astimezone() if article.get("datetime") else None
+            published_at=datetime.fromtimestamp(article.get("datetime"), tz=timezone.utc) if article.get("datetime") else None
           )
           db.add(news_article)
       
@@ -130,8 +131,10 @@ class NewsService:
   
   def fetch_fallback_articles(self, db: Session, symbol: str, target_date: date) -> List[NewsArticle]:
     try:
-      from_date = (target_date - timedelta(hours=self.config.NEWS_LOOKBACK_HOURS)).isoformat()
-      to_date = target_date.isoformat()
+      target_datetime = datetime.combine(target_date, datetime.min.time(), tzinfo=timezone.utc)
+      from_date = (target_datetime - timedelta(hours=24)).date().isoformat()
+      to_date = target_datetime.date().isoformat()
+      
       fallback_symbol = "SPY"
       
       logger.info(f"Fetching fallback news for {symbol} using {fallback_symbol}")
@@ -155,7 +158,7 @@ class NewsService:
           summary=article.get("summary", ""),
           url=url,
           source=article.get("source", ""),
-          published_at=datetime.fromtimestamp(article.get("datetime")).astimezone() if article.get("datetime") else None,
+          published_at=datetime.fromtimestamp(article.get("datetime"), tz=timezone.utc) if article.get("datetime") else None
         )
         db.add(a)
         news_articles.append(a)

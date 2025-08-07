@@ -1,6 +1,6 @@
 import pytz
 import logging
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -50,7 +50,7 @@ class ReportScheduler:
     
     try:
       logger.info("Starting scheduled daily report generation")
-      report_date = date.today()
+      report_date = datetime.now(timezone.utc).date()
       
       # Generate and send report
       success = self.report_generator.generate_and_send_report(report_date)

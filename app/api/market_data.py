@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from datetime import date, datetime
+from datetime import date
 from typing import List, Optional
-from pydantic import BaseModel
 
 from app.db.connection import get_db
-from app.db.models import IndexConstituent, DailyPrice, IndexSummary
+from app.utils.dates import get_market_date
+from app.db.models import IndexConstituent, DailyPrice
 from app.services.market_data_service import MarketDataService
 from app.schemas.index_summary import ConstituentResponse, PriceResponse, IndexResponse, MarketStatusResponse
 
@@ -49,7 +49,7 @@ async def get_stock_price(symbol: str, price_date: Optional[date] = None, db: Se
   """Get price data for a specific stock"""
   
   if not price_date:
-    price_date = date.today()
+    price_date = get_market_date()
     
   price = db.query(DailyPrice).filter_by(symbol=symbol.upper(), date=price_date).first()
   
@@ -81,7 +81,7 @@ async def get_index_data(index_date: Optional[date] = None, db: Session = Depend
   """Get S&P 500 index data"""
   
   if not index_date:
-    index_date = date.today()
+    index_date = get_market_date()
   
   service = MarketDataService()
   index_data = service.get_or_fetch_index_summary(db, index_date)

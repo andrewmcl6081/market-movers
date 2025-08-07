@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from datetime import date
+from datetime import datetime, timezone, date
 from typing import Optional
 
 from app.config import get_config
@@ -72,7 +72,7 @@ async def root():
 @app.post("/api/v1/reports/generate-now")
 async def generate_report_now(background_tasks: BackgroundTasks, target_date: Optional[date] = None, db: Session = Depends(get_db)):
   if not target_date:
-    target_date = date.today()
+    target_date = datetime.now(timezone.utc).date()
   
   existing = db.query(DailyReport).filter_by(report_date=target_date).first()
   if existing:

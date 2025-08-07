@@ -1,8 +1,8 @@
 import logging
 import sendgrid
-from datetime import date
 from typing import List
 from sqlalchemy.orm import Session
+from datetime import date, datetime, timezone
 from sendgrid.helpers.mail import Mail, Email, To, Content
 
 from app.config import get_config
@@ -65,7 +65,7 @@ class EmailService:
             # Update last_email_sent for this subscriber
             subscriber = db.query(UserSubscription).filter_by(email=recipient_email).first()
             if subscriber:
-              subscriber.last_email_sent = date.today()
+              subscriber.last_email_sent = datetime.now(timezone.utc)
               subscriber.total_emails_sent = (subscriber.total_emails_sent or 0) + 1
           else:
             logger.error(f"Failed to send email to {recipient_email}. Status: {response.status_code}")

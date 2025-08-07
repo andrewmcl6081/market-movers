@@ -1,6 +1,6 @@
 import os
 import logging
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from sqlalchemy.orm import Session
 from typing import Dict, List
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -29,7 +29,7 @@ class ReportGenerator:
   def generate_and_send_report(self, report_date: date) -> bool:
     """Generate and send the daily report"""
     
-    start_time = datetime.now()
+    start_time = datetime.now(timezone.utc)
     db = next(get_db())
     
     try:
@@ -110,7 +110,7 @@ class ReportGenerator:
         email_sent=False,
         constituents_processed=constituents_count,
         news_articles_analyzed=news_count,
-        generation_time_seconds=(datetime.now() - start_time).total_seconds(),
+        generation_time_seconds=(datetime.now(timezone.utc) - start_time).total_seconds(),
         recipients=recipients
       )
       db.add(report)
@@ -120,7 +120,7 @@ class ReportGenerator:
         email_sent = self.email_service.send_report(html_content, report_date, db)
         if email_sent:
           report.email_sent = True
-          report.email_sent_at = datetime.now()
+          report.email_sent_at = datetime.now(timezone.utc)
           db.commit()
       else:
         logger.info("Test mode: Skipping email send")
@@ -174,7 +174,7 @@ class ReportGenerator:
       "gainers": gainers_with_headlines,
       "losers": losers_with_headlines,
       "market_insights": market_insights,
-      "current_year": datetime.now().year,
+      "current_year": datetime.now(timezone.utc).year,
       "unsubscribe_url": f"{self.config.API_V1_STR}/subscriptions/unsubscribe",
       "preferences_url": f"{self.config.API_V1_STR}/subscriptions/preferences"
     }
