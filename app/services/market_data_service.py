@@ -2,11 +2,11 @@ import os
 import json
 import boto3
 import logging
-from sqlalchemy import insert
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime, date, timezone
 from botocore.exceptions import ClientError
+from sqlalchemy.dialects.postgresql import insert
 from typing import List, Dict, Optional, Tuple, Any
 
 from app.db.models import IndexConstituent, DailyPrice, IndexSummary, MarketMover
